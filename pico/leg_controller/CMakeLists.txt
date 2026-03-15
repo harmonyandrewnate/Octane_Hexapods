@@ -9,9 +9,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-add_subdirectory(
-    encoder
-)
+
+add_subdirectory(encoder)
+add_subdirectory(motor_driver)
+add_subdirectory(stepper_driver)
+add_subdirectory(PID)
+
 
 add_executable(leg_controller
     leg_controller.c
@@ -25,4 +28,7 @@ pico_add_extra_outputs(leg_controller)
 target_link_libraries(leg_controller 
     pico_stdlib
     encoder
+    motor_driver
+    stepper_driver
+    PID
 )
