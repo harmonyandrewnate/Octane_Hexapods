@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
+add_subdirectory(
+    encoder
+)
+
 add_executable(leg_controller
     leg_controller.c
 )
@@ -18,4 +22,7 @@ pico_enable_stdio_uart(leg_controller 1)
 
 pico_add_extra_outputs(leg_controller)
 
-target_link_libraries(leg_controller pico_stdlib)
+target_link_libraries(leg_controller 
+    pico_stdlib
+    encoder
+)
