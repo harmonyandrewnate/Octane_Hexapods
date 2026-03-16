@@ -39,8 +39,10 @@ void handle_cmd(char *buff, legModule *leg) {
     matches = sscanf(buff, "%s %i %i", cmd, &arg1, &arg2);
     if (strcmp(cmd, "stepper") == 0 && matches == 2){
         set_stepper_speed(leg->shoulderSwing, arg1);
+        printf("set %d \n", arg1);
     } else if (strcmp(cmd, "shoulder") == 0 && matches == 2){
         set_motor(leg->shoulderLift, arg1);
+        printf("set %d \n", arg1);
     } else if (strcmp(cmd, "elbow") == 0 && matches == 2){
         set_motor(leg->elbow, arg1);
         printf("set %d \n", arg1);
@@ -61,7 +63,7 @@ int main() {
     leg.elbow = init_motor(ELBOW_PLUS, ELBOW_MINUS);
 
     
-    printf("commands are \"stepper\", \"shoulder\", and \"elbow\" each with 1 arg. \n");
+    printf("commands are stepper, shoulder, and elbow each with 1 arg. \n");
 
 
     int read_chars = 0;

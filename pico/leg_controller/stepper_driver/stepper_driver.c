@@ -7,8 +7,8 @@
 #include <hardware/sync.h>
 
 
-// Minimum period of step clock to prevent consumption compute time
-#define MIN_PERIOD 200
+// Minimum period in us of step clock to prevent consumption compute time
+#define MIN_PERIOD 200000
 
 // Division of sys clock (133MHz (maybe 200MHz overclocked)) for pwm frequency.
 // 8 bit int, 4 bit frac(/16)
@@ -159,12 +159,12 @@ void set_stepper_speed(stepper *driver, int speed){
     driver->speed = speed;
     speed = abs(speed);
     
-    int T = 1000000 / speed;
-    
     if (speed == 0) {
         cancel_repeating_timer(driver->repeatingTimer);
         return;
     }
+    return;
+    int T = 1000000 / speed;
     
     uint32_t status = save_and_disable_interrupts();
     
