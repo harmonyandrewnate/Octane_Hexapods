@@ -9,5 +9,7 @@ target_include_directories(motor_driver PUBLIC
 
 target_link_libraries(motor_driver
     pico_stdlib
+    hardware_pwm
+    hardware_gpio
 )
 
