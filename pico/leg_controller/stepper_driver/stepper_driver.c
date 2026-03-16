@@ -14,11 +14,11 @@
 // 8 bit int, 4 bit frac(/16)
 // H-bridge good for 25kHz
 // PWM freq = sysclk / (divider * (wrap+1))
-#define PWM_DIV_INT 52
-#define PWM_DIV_FRAC 10
+#define PWM_DIV_INT_STEPPER 52
+#define PWM_DIV_FRAC_STEPPER 10
 
 // Wrap number
-#define PWM_WRAP 100
+#define PWM_WRAP_STEPPER 99
 
 
 
@@ -47,7 +47,7 @@ typedef struct{
 } stepper;
 
 
-
+// Power limit is in %
 stepper *init_stepper(uint pinAPlus, uint pinAMinus, uint pinBPlus, uint pinBMinus,
                       uint powerLimit, uint timerAlarmNum){
     // Setup GPIO
@@ -77,11 +77,6 @@ stepper *init_stepper(uint pinAPlus, uint pinAMinus, uint pinBPlus, uint pinBMin
     stepperDriver->power = 0;
 
     // Configure PWM
-    pwm_set_counter(stepperDriver->sliceAPlus, PWM_WRAP);
-    pwm_set_counter(stepperDriver->sliceAMinus, PWM_WRAP);
-    pwm_set_counter(stepperDriver->sliceBPlus, PWM_WRAP);
-    pwm_set_counter(stepperDriver->sliceBMinus, PWM_WRAP);
-    
     pwm_set_chan_level(stepperDriver->sliceAPlus, stepperDriver->channelAPlus, 0);
     pwm_set_chan_level(stepperDriver->sliceAMinus, stepperDriver->channelAMinus, 0);
     pwm_set_chan_level(stepperDriver->sliceBPlus, stepperDriver->channelBPlus, 0);
@@ -89,8 +84,10 @@ stepper *init_stepper(uint pinAPlus, uint pinAMinus, uint pinBPlus, uint pinBMin
 
     pwm_config pwmCfg = pwm_get_default_config();
 
-    pwm_config_set_clkdiv_int_frac4 (&pwmCfg, PWM_DIV_INT, PWM_DIV_FRAC);
+    pwm_config_set_clkdiv_int_frac4 (&pwmCfg, PWM_DIV_INT_STEPPER, PWM_DIV_FRAC_STEPPER);
 
+    pwm_config_set_wrap(&pwmCfg, PWM_WRAP_STEPPER);
+    
     pwm_init (stepperDriver->sliceAPlus, &pwmCfg, true);
     pwm_init (stepperDriver->sliceAMinus, &pwmCfg, true);
     pwm_init (stepperDriver->sliceBPlus, &pwmCfg, true);
@@ -140,6 +137,7 @@ int step_stepper(stepper *driver, int dir){
     driver->currentStep %= 4;
 }
 
+// power is in %
 void set_stepper_power(stepper *driver, int power){
     driver->power = power;
     step_stepper(driver, 0);
@@ -155,6 +153,34 @@ bool step_interrupt(__unused struct repeating_timer *t){
         return false;
     }
     return true;
+}
+
+void set_stepper_speed(stepper *driver, int speed){
+    driver->speed = speed;
+    speed = abs(speed);
+    
+    int T = 1000000 / speed;
+    
+    if (speed == 0) {
+        cancel_repeating_timer(driver->repeatingTimer);
+        return;
+    }
+    
+    uint32_t status = save_and_disable_interrupts();
+    
+    cancel_repeating_timer(driver->repeatingTimer);
+    
+    if (T > MIN_PERIOD) {
+        alarm_pool_add_repeating_timer_us(driver->alarmPool, 
+                                          T, &step_interrupt, 
+                                          driver, driver->repeatingTimer);
+    } else {
+        alarm_pool_add_repeating_timer_us(driver->alarmPool, 
+                                          MIN_PERIOD, &step_interrupt, 
+                                          driver, driver->repeatingTimer);
+    }
+    
+    restore_interrupts(status);
 }
 
 void set_stepper_speed(stepper *driver, int speed){
