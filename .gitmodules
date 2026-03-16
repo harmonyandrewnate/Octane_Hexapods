@@ -1,3 +1,3 @@
 [submodule "pico/leg_controller/pico/pico-sdk"]
-	path = pico/leg_controller/pico/pico-sdk
+	path = pico/pico-sdk
 	url = git@github.com:raspberrypi/pico-sdk.git
