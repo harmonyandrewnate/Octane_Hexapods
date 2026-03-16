@@ -9,5 +9,10 @@ target_include_directories(stepper_driver PUBLIC
 
 target_link_libraries(stepper_driver
     pico_stdlib
+    pico_time
+    hardware_gpio
+    hardware_pwm
+    hardware_irq
+    hardware_sync
 )
 
