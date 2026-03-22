@@ -9,6 +9,10 @@
 #include "encoder.c"
 
 
+// set pico to max clock speed
+#define SYS_CLK_MHZ 200
+
+
 
 #define BUFF_LEN 64
 

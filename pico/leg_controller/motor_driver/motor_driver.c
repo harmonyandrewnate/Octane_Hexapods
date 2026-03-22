@@ -4,7 +4,7 @@
 
 
 
-// Division of sys clock (133MHz (maybe 200MHz overclocked)) for pwm frequency.
+// Division of sys clock 200MHz) for pwm frequency.
 // 8 bit int, 4 bit frac(/16)
 #define PWM_DIV_INT_MOTOR 52
 #define PWM_DIV_FRAC_MOTOR 10

@@ -10,7 +10,7 @@
 // Minimum period in us of step clock to prevent consumption compute time
 #define MIN_PERIOD 200000
 
-// Division of sys clock (133MHz (maybe 200MHz overclocked)) for pwm frequency.
+// Division of sys clock (200MHz) for pwm frequency.
 // 8 bit int, 4 bit frac(/16)
 // H-bridge good for 25kHz
 // PWM freq = sysclk / (divider * (wrap+1))
