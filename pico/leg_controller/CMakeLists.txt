@@ -21,6 +21,10 @@ add_executable(leg_controller
     leg_controller.c
 )
 
+target_compile_definitions(leg_controller PRIVATE
+    SYS_CLK_MHZ=200
+)
+
 pico_enable_stdio_usb(leg_controller 1)
 pico_enable_stdio_uart(leg_controller 1)
 
@@ -28,6 +32,7 @@ pico_add_extra_outputs(leg_controller)
 
 target_link_libraries(leg_controller 
     pico_stdlib
+    hardware_pio
     encoder
     motor_driver
     stepper_driver

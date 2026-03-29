@@ -6,13 +6,14 @@ target_include_directories(stepper_driver PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
 )
 
+pico_generate_pio_header(stepper_driver ${CMAKE_CURRENT_LIST_DIR}/stepper.pio)
 
 target_link_libraries(stepper_driver
     pico_stdlib
     pico_time
     hardware_gpio
     hardware_pwm
-    hardware_irq
-    hardware_sync
+    hardware_pio
+    hardware_clocks
 )
 

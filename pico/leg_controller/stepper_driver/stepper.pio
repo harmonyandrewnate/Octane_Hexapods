@@ -1,0 +1,25 @@
+.pio_version 0
+
+.program stepper
+
+.wrap_target
+forward:
+    set pins, 0b1010 [31]
+    set pins, 0b0110 [31]
+    set pins, 0b0101 [31]
+    set pins, 0b1001 [27]
+    jmp case_dir
+
+reverse:
+    set pins, 0b1010 [31]
+    set pins, 0b1001 [31]
+    set pins, 0b0101 [31]
+    set pins, 0b0110 [27]
+    jmp case_dir
+
+case_dir:
+    pull noblock
+    mov x, osr
+    jmp !x, reverse
+.wrap
+

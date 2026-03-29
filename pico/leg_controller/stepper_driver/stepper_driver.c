@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <pico/stdlib.h>
-#include <pico/time.h>
+//#include <pico/time.h>
 #include <hardware/gpio.h>
 #include <hardware/pwm.h>
-#include <hardware/irq.h>
-#include <hardware/sync.h>
+//#include <hardware/irq.h>
+//#include <hardware/sync.h>
+#include <hardware/pio.h>
+#include <hardware/clocks.h>
+#include <stepper.c>
 
 
 // Minimum period in us of step clock to prevent consumption compute time
@@ -23,20 +26,11 @@
 
 
 typedef struct{
-    alarm_pool_t *alarmPool;
-    struct repeating_timer *repeatingTimer;
+    PIO pio;
+    uint sm;
 
-    // Is it worth hardcoding vvv to reduce interupt time?
-    // PWM slice and channel of pins
-    uint sliceAPlus;
-    uint channelAPlus;
-    uint sliceAMinus;
-    uint channelAMinus;
-
-    uint sliceBPlus;
-    uint channelBPlus;
-    uint sliceBMinus;
-    uint channelBMinus;
+    uint sliceStepPower;
+    uint channelStepPower;
 
     // duty cycle and duty cycle limit to not overdrive
     uint powerLimit;
@@ -47,40 +41,45 @@ typedef struct{
 } stepper;
 
 
+// power is in %
+void set_stepper_power(stepper *driver, int power){
+    driver->power = power;
+    if (power > driver->powerLimit) {
+        power = driver->powerLimit;
+    }
+    pwm_set_chan_level(driver->sliceStepPower, driver->channelStepPower, power);
+}
+
 // Power limit is in %
-stepper *init_stepper(uint pinAPlus, uint pinAMinus, uint pinBPlus, uint pinBMinus,
-                      uint powerLimit, uint timerAlarmNum){
+// pins for en must be consecutive in the order pinAPlus, pinAMinus, pinBPlus, pinBMinus
+stepper *init_stepper(uint pinAPlus, uint pinPWM, uint powerLimit, PIO pio, uint sm){
+
     // Setup GPIO
-    gpio_set_function(pinAPlus, GPIO_FUNC_PWM);
-    gpio_set_function(pinAMinus, GPIO_FUNC_PWM);
-    gpio_set_function(pinBPlus, GPIO_FUNC_PWM);
-    gpio_set_function(pinBMinus, GPIO_FUNC_PWM);
+    gpio_set_function(pinPWM, GPIO_FUNC_PWM);
     
+    pio_gpio_init(pio, pinAPlus+0);
+    pio_gpio_init(pio, pinAPlus+1);
+    pio_gpio_init(pio, pinAPlus+2);
+    pio_gpio_init(pio, pinAPlus+3);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, pinAPlus, 4, true);
+    pio_sm_set_set_pins(pio, sm, pinAPlus, 4);
+
     // Allocate struct
     stepper *stepperDriver = malloc(sizeof(stepper));
 
     if (stepperDriver == NULL) return NULL;
 
     // Get PWM slice and channel
-    stepperDriver->sliceAPlus = pwm_gpio_to_slice_num(pinAPlus);
-    stepperDriver->channelAPlus = pwm_gpio_to_channel(pinAPlus);
-    stepperDriver->sliceAMinus = pwm_gpio_to_slice_num(pinAMinus);
-    stepperDriver->channelAMinus = pwm_gpio_to_channel(pinAMinus);
-    
-    stepperDriver->sliceBPlus = pwm_gpio_to_slice_num(pinBPlus);
-    stepperDriver->channelBPlus = pwm_gpio_to_channel(pinBPlus);
-    stepperDriver->sliceBMinus = pwm_gpio_to_slice_num(pinBMinus);
-    stepperDriver->channelBMinus = pwm_gpio_to_channel(pinBMinus);
+    stepperDriver->sliceStepPower = pwm_gpio_to_slice_num(pinPWM);
+    stepperDriver->channelStepPower = pwm_gpio_to_channel(pinPWM);
 
     // Configure power limits
     stepperDriver->powerLimit = powerLimit;    
     stepperDriver->power = 0;
 
     // Configure PWM
-    pwm_set_chan_level(stepperDriver->sliceAPlus, stepperDriver->channelAPlus, 0);
-    pwm_set_chan_level(stepperDriver->sliceAMinus, stepperDriver->channelAMinus, 0);
-    pwm_set_chan_level(stepperDriver->sliceBPlus, stepperDriver->channelBPlus, 0);
-    pwm_set_chan_level(stepperDriver->sliceBMinus, stepperDriver->channelBMinus, 0);
+    pwm_set_chan_level(stepperDriver->sliceStepPower, stepperDriver->channelStepPower, 0);
 
     pwm_config pwmCfg = pwm_get_default_config();
 
@@ -88,125 +87,32 @@ stepper *init_stepper(uint pinAPlus, uint pinAMinus, uint pinBPlus, uint pinBMin
 
     pwm_config_set_wrap(&pwmCfg, PWM_WRAP_STEPPER);
     
-    pwm_init (stepperDriver->sliceAPlus, &pwmCfg, true);
-    pwm_init (stepperDriver->sliceAMinus, &pwmCfg, true);
-    pwm_init (stepperDriver->sliceBPlus, &pwmCfg, true);
-    pwm_init (stepperDriver->sliceBMinus, &pwmCfg, true);
+    pwm_init (stepperDriver->sliceStepPower, &pwmCfg, true);
 
-    // Configure repeating timer
-    stepperDriver->alarmPool = alarm_pool_create(timerAlarmNum, 1);
-
-    if (stepperDriver->alarmPool == NULL) return NULL;
     
-    // create repeating_timer *
-    struct repeating_timer timer;
-    stepperDriver->repeatingTimer = &timer;
+    stepperDriver->pio = pio;
+    stepperDriver->sm = sm;
+
+    stepper_program_init(pio, sm, 0, pinAPlus, 30000);
+
+    set_stepper_power(stepperDriver, powerLimit);    
 
     return stepperDriver;
 }
 
-int step_stepper(stepper *driver, int dir){
-    switch (driver->currentStep) {
-        case 0:
-            pwm_set_chan_level(driver->sliceAPlus, driver->channelAPlus, driver->power);
-            pwm_set_chan_level(driver->sliceAMinus, driver->channelAMinus, 0);
-            pwm_set_chan_level(driver->sliceBPlus, driver->channelBPlus, 0);
-            pwm_set_chan_level(driver->sliceBMinus, driver->channelBMinus, 0);
-            break;
-        case 1:
-            pwm_set_chan_level(driver->sliceAPlus, driver->channelAPlus, 0);
-            pwm_set_chan_level(driver->sliceAMinus, driver->channelAMinus, 0);
-            pwm_set_chan_level(driver->sliceBPlus, driver->channelBPlus, driver->power);
-            pwm_set_chan_level(driver->sliceBMinus, driver->channelBMinus, 0);
-            break;
-        case 2:
-            pwm_set_chan_level(driver->sliceAPlus, driver->channelAPlus, 0);
-            pwm_set_chan_level(driver->sliceAMinus, driver->channelAMinus, driver->power);
-            pwm_set_chan_level(driver->sliceBPlus, driver->channelBPlus, 0);
-            pwm_set_chan_level(driver->sliceBMinus, driver->channelBMinus, 0);
-            break;
-        case 3:
-            pwm_set_chan_level(driver->sliceAPlus, driver->channelAPlus, 0);
-            pwm_set_chan_level(driver->sliceAMinus, driver->channelAMinus, 0);
-            pwm_set_chan_level(driver->sliceBPlus, driver->channelBPlus, 0);
-            pwm_set_chan_level(driver->sliceBMinus, driver->channelBMinus, driver->power);
-            break;
-        default:
-    }
-    driver->currentStep += dir;
-    driver->currentStep %= 4;
-}
-
-// power is in %
-void set_stepper_power(stepper *driver, int power){
-    driver->power = power;
-    step_stepper(driver, 0);
-}
-
-bool step_interrupt(__unused struct repeating_timer *t){
-    int speed = ((stepper *)(t->user_data))->speed;
+void set_stepper_speed(stepper *driver, int speed){
+    int dir = 0;
     if (speed > 0) {
-        step_stepper(t->user_data, 1);
-    } else if (speed < 0) {
-        step_stepper(t->user_data, -1);
-    } else {
-        return false;
+        dir = 1;
+        speed = -speed;
     }
-    return true;
-}
-
-void set_stepper_speed(stepper *driver, int speed){
-    driver->speed = speed;
-    speed = abs(speed);
     
     if (speed == 0) {
-        cancel_repeating_timer(driver->repeatingTimer);
-        return;
-    }
-    return;
-    int T = 1000000 / speed;
-    
-    uint32_t status = save_and_disable_interrupts();
-    
-    cancel_repeating_timer(driver->repeatingTimer);
-    
-    if (T > MIN_PERIOD) {
-        alarm_pool_add_repeating_timer_us(driver->alarmPool, 
-                                          T, &step_interrupt, 
-                                          driver, driver->repeatingTimer);
+        pio_sm_set_enabled(driver->pio, driver->sm, false); 
     } else {
-        alarm_pool_add_repeating_timer_us(driver->alarmPool, 
-                                          MIN_PERIOD, &step_interrupt, 
-                                          driver, driver->repeatingTimer);
-    }
-    
-    restore_interrupts(status);
-}
+        pio_sm_set_enabled(driver->pio, driver->sm, true);
 
-void set_stepper_speed(stepper *driver, int speed){
-    driver->speed = speed;
-    speed = abs(speed);
-    
-    int T = 1000000 / speed;
-    
-    if (speed == 0) {
-        cancel_repeating_timer(driver->repeatingTimer);
-        return;
+        pio_sm_set_clkdiv(driver->pio, driver->sm, rpm_to_clkdiv(speed));
+        pio_sm_put(driver->pio, driver->sm, dir);
     }
-    
-    uint32_t status = save_and_disable_interrupts();
-    
-    cancel_repeating_timer(driver->repeatingTimer);
-    
-    if (T > MIN_PERIOD) {
-        alarm_pool_add_repeating_timer_us(driver->alarmPool, 
-                                          T, &step_interrupt, 
-                                          driver, driver->repeatingTimer);
-    } else {
-        alarm_pool_add_repeating_timer_us(driver->alarmPool, 
-                                          MIN_PERIOD, &step_interrupt, 
-                                          driver, driver->repeatingTimer);
-    }
-    
-    restore_interrupts(status);
 }

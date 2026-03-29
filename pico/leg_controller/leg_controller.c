@@ -9,17 +9,11 @@
 #include "encoder.c"
 
 
-// set pico to max clock speed
-#define SYS_CLK_MHZ 200
-
-
 
 #define BUFF_LEN 64
 
 #define SWING_A_PLUS 10
-#define SWING_A_MINUS 11
-#define SWING_B_PLUS 12
-#define SWING_B_MINUS 13
+#define SWING_PWM 28
 
 #define STEP_POW_LIMIT 10
 
@@ -58,8 +52,7 @@ int main() {
 
     legModule leg;
 
-    leg.shoulderSwing = init_stepper(SWING_A_PLUS, SWING_A_MINUS, SWING_B_PLUS, SWING_B_MINUS,
-                                      STEP_POW_LIMIT, 0);
+    leg.shoulderSwing = init_stepper(SWING_A_PLUS, SWING_PWM, STEP_POW_LIMIT, pio0, 0);
 
     set_stepper_power(leg.shoulderSwing, 10);    
 
