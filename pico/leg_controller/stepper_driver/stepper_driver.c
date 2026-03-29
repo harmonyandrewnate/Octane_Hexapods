@@ -102,7 +102,7 @@ stepper *init_stepper(uint pinAPlus, uint pinPWM, uint powerLimit, PIO pio, uint
 
 void set_stepper_speed(stepper *driver, int speed){
     int dir = 0;
-    if (speed > 0) {
+    if (speed < 0) {
         dir = 1;
         speed = -speed;
     }
