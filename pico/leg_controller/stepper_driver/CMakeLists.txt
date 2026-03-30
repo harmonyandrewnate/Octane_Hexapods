@@ -6,7 +6,7 @@ target_include_directories(stepper_driver PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
 )
 
-pico_generate_pio_header(stepper_driver ${CMAKE_CURRENT_LIST_DIR}/stepper.pio)
+pico_generate_pio_header(stepper_driver ${CMAKE_CURRENT_LIST_DIR}/stepper_driver.pio)
 
 target_link_libraries(stepper_driver
     pico_stdlib

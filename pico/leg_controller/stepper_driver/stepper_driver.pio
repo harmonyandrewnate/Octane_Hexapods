@@ -1,0 +1,40 @@
+.pio_version 0
+
+.program stepper
+
+case_dir:
+    pull noblock
+    mov x, osr
+    jmp !x forward
+    jmp reverse
+
+forward:
+    set pins, 0b1000 [28]
+    set pins, 0b0010 [31]
+    set pins, 0b0100 [31]
+    set pins, 0b0001 [30]
+    jmp case_dir
+
+reverse:
+    set pins, 0b1000 [27]
+    set pins, 0b0001 [31]
+    set pins, 0b0100 [31]
+    set pins, 0b0010 [30]
+    jmp case_dir
+
+
+% c-sdk {
+// this is a raw helper function for use by the user which sets up the GPIO output, and configures the SM to output on a particular pin
+
+void pio_stepper_init(PIO pio, uint sm, uint offset, uint startPin) {
+    for (int i = 0; i < 4; i++) {
+        pio_gpio_init(pio, startPin + i);
+        gpio_set_dir(startPin + i, GPIO_OUT);
+    }
+    pio_sm_set_consecutive_pindirs(pio, sm, startPin, 4, true);
+    pio_sm_config c = stepper_program_get_default_config(offset);
+    sm_config_set_set_pins(&c, startPin, 4);
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}
+

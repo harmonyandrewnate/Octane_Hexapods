@@ -36,7 +36,7 @@ void handle_cmd(char *buff, legModule *leg) {
     char cmd[BUFF_LEN];
     matches = sscanf(buff, "%s %i %i", cmd, &arg1, &arg2);
     if (strcmp(cmd, "stepper") == 0 && matches == 2){
-        set_stepper_speed(leg->shoulderSwing, arg1);
+        stepper_driver_set_vel(leg->shoulderSwing, arg1);
         printf("set %d \n", arg1);
     } else if (strcmp(cmd, "shoulder") == 0 && matches == 2){
         set_motor(leg->shoulderLift, arg1);
@@ -52,9 +52,12 @@ int main() {
 
     legModule leg;
 
-    leg.shoulderSwing = init_stepper(SWING_A_PLUS, SWING_PWM, STEP_POW_LIMIT, pio0, 0);
+    stepper shoulderDriver;
+    leg.shoulderSwing = &shoulderDriver;
 
-    set_stepper_power(leg.shoulderSwing, 10);    
+    init_stepper_driver(leg.shoulderSwing, SWING_A_PLUS, SWING_PWM, STEP_POW_LIMIT, pio0, 0);
+    
+    stepper_driver_set_power(leg.shoulderSwing, 10);    
 
     leg.shoulderLift = init_motor(LIFT_PLUS, LIFT_MINUS);
     leg.elbow = init_motor(ELBOW_PLUS, ELBOW_MINUS);

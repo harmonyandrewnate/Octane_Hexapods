@@ -1,17 +1,12 @@
-#include <stdlib.h>
-#include <pico/stdlib.h>
-//#include <pico/time.h>
-#include <hardware/gpio.h>
-#include <hardware/pwm.h>
-//#include <hardware/irq.h>
-//#include <hardware/sync.h>
-#include <hardware/pio.h>
-#include <hardware/clocks.h>
-#include <stepper.c>
+#include "pico/stdlib.h"
+#include "hardware/pio.h"
+#include "hardware/clocks.h"
 
+#include "hardware/gpio.h"
+#include "hardware/pwm.h"
 
-// Minimum period in us of step clock to prevent consumption compute time
-#define MIN_PERIOD 200000
+#include "stepper_driver.pio.h"
+
 
 // Division of sys clock (200MHz) for pwm frequency.
 // 8 bit int, 4 bit frac(/16)
@@ -20,10 +15,12 @@
 #define PWM_DIV_INT_STEPPER 52
 #define PWM_DIV_FRAC_STEPPER 10
 
-// Wrap number
+// PSM wrap number
 #define PWM_WRAP_STEPPER 99
 
-
+// Speed calculation to clkdiv constants
+#define INSTR_PER_STEP 32
+#define STEPS_PER_REV 200
 
 typedef struct{
     PIO pio;
@@ -34,85 +31,68 @@ typedef struct{
 
     // duty cycle and duty cycle limit to not overdrive
     uint powerLimit;
-    uint power;
-
-    int speed;
-    uint currentStep;
 } stepper;
 
 
-// power is in %
-void set_stepper_power(stepper *driver, int power){
-    driver->power = power;
+
+// Setup stepper driver
+void init_stepper_driver(stepper *driver, uint pinAPlus, uint pinPWM, uint powerLimit, PIO pio, uint sm){
+    driver->sliceStepPower = pwm_gpio_to_slice_num(pinPWM);
+    driver->channelStepPower = pwm_gpio_to_channel(pinPWM);
+
+    driver->powerLimit = powerLimit;
+
+    driver->pio = pio;
+    driver->sm = sm;
+    
+    // pio init
+    int offset = pio_add_program(pio, &stepper_program);
+    pio_stepper_init(pio, sm, offset, pinAPlus);
+    
+    // pwm init
+    gpio_set_function(pinPWM, GPIO_FUNC_PWM);
+    
+    pwm_set_chan_level(driver->sliceStepPower, driver->channelStepPower, 0);
+
+    pwm_config pwmCfg = pwm_get_default_config();
+    pwm_config_set_clkdiv_int_frac4 (&pwmCfg, PWM_DIV_INT_STEPPER, PWM_DIV_FRAC_STEPPER);
+    pwm_config_set_wrap(&pwmCfg, PWM_WRAP_STEPPER);
+    
+    pwm_init (driver->sliceStepPower, &pwmCfg, true);
+}
+
+//clkdiv from speed(rpm)
+inline int get_div_from_speed(int speed){
+    return (clock_get_hz(clk_sys) * 60) / (STEPS_PER_REV * INSTR_PER_STEP * speed);
+}
+
+// Set velocity
+void stepper_driver_set_vel(stepper *driver, int vel){
+    int dir = 0;
+    int speed = 0;
+    if (vel < 0) {
+        dir = 1;
+        speed = -vel;
+    }else{
+        speed = vel;
+    }
+
+    if (speed == 0) {
+        pio_sm_set_enabled(driver->pio, driver->sm, false);
+    } else {
+        pio_sm_set_enabled(driver->pio, driver->sm, true);
+        
+        int clkdiv = get_div_from_speed(speed);
+
+        pio_sm_put(driver->pio, driver->sm, dir);
+        pio_sm_set_clkdiv_int_frac8(driver->pio, driver->sm, clkdiv >> 8, clkdiv & 0xFF);
+    }
+}
+
+// Set power
+void stepper_driver_set_power(stepper *driver, uint power){
     if (power > driver->powerLimit) {
         power = driver->powerLimit;
     }
     pwm_set_chan_level(driver->sliceStepPower, driver->channelStepPower, power);
-}
-
-// Power limit is in %
-// pins for en must be consecutive in the order pinAPlus, pinAMinus, pinBPlus, pinBMinus
-stepper *init_stepper(uint pinAPlus, uint pinPWM, uint powerLimit, PIO pio, uint sm){
-
-    // Setup GPIO
-    gpio_set_function(pinPWM, GPIO_FUNC_PWM);
-    
-    pio_gpio_init(pio, pinAPlus+0);
-    pio_gpio_init(pio, pinAPlus+1);
-    pio_gpio_init(pio, pinAPlus+2);
-    pio_gpio_init(pio, pinAPlus+3);
-
-    pio_sm_set_consecutive_pindirs(pio, sm, pinAPlus, 4, true);
-    pio_sm_set_set_pins(pio, sm, pinAPlus, 4);
-
-    // Allocate struct
-    stepper *stepperDriver = malloc(sizeof(stepper));
-
-    if (stepperDriver == NULL) return NULL;
-
-    // Get PWM slice and channel
-    stepperDriver->sliceStepPower = pwm_gpio_to_slice_num(pinPWM);
-    stepperDriver->channelStepPower = pwm_gpio_to_channel(pinPWM);
-
-    // Configure power limits
-    stepperDriver->powerLimit = powerLimit;    
-    stepperDriver->power = 0;
-
-    // Configure PWM
-    pwm_set_chan_level(stepperDriver->sliceStepPower, stepperDriver->channelStepPower, 0);
-
-    pwm_config pwmCfg = pwm_get_default_config();
-
-    pwm_config_set_clkdiv_int_frac4 (&pwmCfg, PWM_DIV_INT_STEPPER, PWM_DIV_FRAC_STEPPER);
-
-    pwm_config_set_wrap(&pwmCfg, PWM_WRAP_STEPPER);
-    
-    pwm_init (stepperDriver->sliceStepPower, &pwmCfg, true);
-
-    
-    stepperDriver->pio = pio;
-    stepperDriver->sm = sm;
-
-    stepper_program_init(pio, sm, 0, pinAPlus, 30000);
-
-    set_stepper_power(stepperDriver, powerLimit);    
-
-    return stepperDriver;
-}
-
-void set_stepper_speed(stepper *driver, int speed){
-    int dir = 0;
-    if (speed < 0) {
-        dir = 1;
-        speed = -speed;
-    }
-    
-    if (speed == 0) {
-        pio_sm_set_enabled(driver->pio, driver->sm, false); 
-    } else {
-        pio_sm_set_enabled(driver->pio, driver->sm, true);
-
-        pio_sm_set_clkdiv(driver->pio, driver->sm, rpm_to_clkdiv(speed));
-        pio_sm_put(driver->pio, driver->sm, dir);
-    }
 }
