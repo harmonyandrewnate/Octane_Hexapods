@@ -15,7 +15,7 @@
 #define SWING_A_PLUS 10
 #define SWING_PWM 28
 
-#define STEP_POW_LIMIT 10
+#define STEP_POW_LIMIT 100
 
 #define LIFT_PLUS 8
 #define LIFT_MINUS 9
@@ -57,7 +57,7 @@ int main() {
 
     init_stepper_driver(leg.shoulderSwing, SWING_A_PLUS, SWING_PWM, STEP_POW_LIMIT, pio0, 0);
     
-    stepper_driver_set_power(leg.shoulderSwing, 10);    
+    stepper_driver_set_power(leg.shoulderSwing, 100);    
 
     leg.shoulderLift = init_motor(LIFT_PLUS, LIFT_MINUS);
     leg.elbow = init_motor(ELBOW_PLUS, ELBOW_MINUS);

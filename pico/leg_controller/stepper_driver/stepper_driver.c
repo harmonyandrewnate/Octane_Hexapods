@@ -19,7 +19,7 @@
 #define PWM_WRAP_STEPPER 99
 
 // Speed calculation to clkdiv constants
-#define INSTR_PER_STEP 32
+#define INSTR_PER_STEP 64
 #define STEPS_PER_REV 200
 
 typedef struct{
@@ -61,9 +61,17 @@ void init_stepper_driver(stepper *driver, uint pinAPlus, uint pinPWM, uint power
     pwm_init (driver->sliceStepPower, &pwmCfg, true);
 }
 
-//clkdiv from speed(rpm)
+//clkdiv from speed(dps)
 inline int get_div_from_speed(int speed){
-    return (clock_get_hz(clk_sys) * 60) / (STEPS_PER_REV * INSTR_PER_STEP * speed);
+    long targStepFreq = (speed * 360) / STEPS_PER_REV;
+    int div = (int)((long)clock_get_hz(clk_sys) / (targStepFreq / INSTR_PER_STEP)) << 8;
+    if (div > 0xFFFFFF) {
+        return 0xFFFFFF;
+    } else if (div <= 0xFF) {
+        return 1 << 8;
+    } else {
+        return div;
+    }
 }
 
 // Set velocity
