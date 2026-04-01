@@ -2,7 +2,7 @@
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
 
-int offsets[12] = {0};
+int offsets[8] = {0};
 
 static inline int get_pio_num(PIO pio) {
     switch ((int)pio) {
@@ -19,6 +19,7 @@ void setup_encoder_pio(PIO pio) {
     pio_add_program(pio, &quadrature_encoder_program);
 } 
 
+// Uses 2 consecutive pins
 void encoder_init(PIO pio, uint sm, uint pin, int max_step_rate) {
     quadrature_encoder_program_init(pio, sm, pin, max_step_rate);
 }
