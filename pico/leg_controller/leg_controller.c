@@ -38,6 +38,9 @@ void handle_cmd(char *buff, legModule *leg) {
     if (strcmp(cmd, "stepper") == 0 && matches == 2){
         stepper_driver_set_vel(leg->shoulderSwing, arg1);
         printf("set %d \n", arg1);
+    } else if (strcmp(cmd, "power") == 0 && matches == 2){
+        stepper_driver_set_power(leg->shoulderSwing, arg1);
+        printf("set %d \n", arg1);
     } else if (strcmp(cmd, "shoulder") == 0 && matches == 2){
         set_motor(leg->shoulderLift, arg1);
         printf("set %d \n", arg1);

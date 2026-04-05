@@ -1,4 +1,4 @@
-import numpy as np
+#import numpy as np
 import math
 
 LINK_1 = 125.58
@@ -11,8 +11,8 @@ TWIST_3 = 0
 
 def IK(X, Y, Z):
     theta_1 = math.atan2(Y,X)
-    X = X - (LINK_1 * np.cos(theta_1))
-    Y = Y - (LINK_1 * np.sin(theta_1))
+    X = X - (LINK_1 * math.cos(theta_1))
+    Y = Y - (LINK_1 * math.sin(theta_1))
     hypotenuseSqrd = (X**2) + (Y**2) + (Z**2)
     if (math.sqrt(hypotenuseSqrd) > LINK_2+LINK_3):
         return
