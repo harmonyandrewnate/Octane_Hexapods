@@ -9,24 +9,24 @@ case_dir:
     jmp reverse
 
 forward:
-    set pins, 0b1000 [28]
+    nop [27]
     set pins, 0b1010 [31]
-    set pins, 0b0010 [31]
+    nop [31]
     set pins, 0b0110 [31]
-    set pins, 0b0100 [31]
+    nop [31]
     set pins, 0b0101 [31]
-    set pins, 0b0001 [31]
+    nop [31]
     set pins, 0b1001 [30]
     jmp case_dir
 
 reverse:
-    set pins, 0b1000 [27]
+    nop [27]
     set pins, 0b1001 [31]
-    set pins, 0b0001 [31]
+    nop [31]
     set pins, 0b0101 [31]
-    set pins, 0b0100 [31]
+    nop [31]
     set pins, 0b0110 [31]
-    set pins, 0b0010 [31]
+    nop [31]
     set pins, 0b1010 [30]
     jmp case_dir
 

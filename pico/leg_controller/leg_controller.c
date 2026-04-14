@@ -7,29 +7,73 @@
 #include "stepper_driver.c"
 #include "motor_driver.c"
 #include "encoder.c"
-
+#include "PID.c"
 
 
 #define BUFF_LEN 64
 
+// Stepper pins
 #define SWING_A_PLUS 10
 #define SWING_PWM 28
 
+// Stepper cfg
 #define STEP_POW_LIMIT 100
 
+// Lift motor pins
 #define LIFT_PLUS 8
 #define LIFT_MINUS 9
 
+// Elbow motor pins
 #define ELBOW_PLUS 4
 #define ELBOW_MINUS 5
 
+// Which PIO is used for encoders
+#define ENCODER_PIO 0
+// Max encoder rate for power saving. Passing zero sets max
+#define MAX_ENC_RATE 0
+
+// Encoder start pins
+#define SWING_ENC_PIN 14
+#define LIFT_ENC_PIN 6
+#define ELBOW_ENC_PIN 2
+
+/* ----------- 
+ *  PID VALUES
+ * ------------
+ */
+// PID period us
+#define PID_PERIOD 100
+
+// Shoulder Swing
+#define SWING_P 1.0
+#define SWING_I 0.0
+#define SWING_D 0.0
+
+// Shoulder Lift
+#define LIFT_P 1.0
+#define LIFT_I 0.0
+#define LIFT_D 0.0
+
+// Elbow
+#define ELBOW_P 1.0
+#define ELBOW_I 0.0
+#define ELBOW_D 0.0
 
 
 typedef struct{
     stepper *shoulderSwing;
+    encoder_t *swingEnc;
+    PID_cfg *swingPID;
+
     motor *shoulderLift;
+    encoder_t *liftEnc;
+    PID_cfg *liftPID;
+
     motor *elbow;
+    encoder_t *elbowEnc;
+    PID_cfg *elbowPID;
 } legModule;
+
 
 void handle_cmd(char *buff, legModule *leg) {
     int arg1, arg2, matches;
@@ -50,22 +94,65 @@ void handle_cmd(char *buff, legModule *leg) {
     } 
 }
 
+
+// Define global memory
+legModule leg;
+
+stepper shoulderDriver;
+motor shoulderLiftDriver;
+motor elbowDriver;
+
+encoder_t swingEncoder;
+encoder_t liftEncoder;
+encoder_t elbowEncoder;
+
+PID_cfg swingPIDcfg;
+PID_cfg liftPIDcfg;
+PID_cfg elbowPIDcfg;
+
+void mem_setup(){
+    // Setup memory space
+    leg.shoulderSwing = &shoulderDriver;
+    leg.swingEnc = &swingEncoder;
+    leg.swingPID = &swingPIDcfg;
+
+    leg.shoulderLift = &shoulderLiftDriver;
+    leg.liftEnc = &liftEncoder;
+    leg.liftPID = &liftPIDcfg;
+
+    leg.elbow = &elbowDriver;
+    leg.elbowEnc = &elbowEncoder;
+    leg.elbowPID = &elbowPIDcfg;
+}
+
 int main() {
     stdio_init_all();
 
-    legModule leg;
+    mem_setup();
 
-    stepper shoulderDriver;
-    leg.shoulderSwing = &shoulderDriver;
-
+    // Motor Driver setup
     init_stepper_driver(leg.shoulderSwing, SWING_A_PLUS, SWING_PWM, STEP_POW_LIMIT, pio0, 0);
     
     stepper_driver_set_power(leg.shoulderSwing, 100);    
 
-    leg.shoulderLift = init_motor(LIFT_PLUS, LIFT_MINUS);
-    leg.elbow = init_motor(ELBOW_PLUS, ELBOW_MINUS);
+    init_motor(leg.shoulderLift, LIFT_PLUS, LIFT_MINUS);
+    init_motor(leg.elbow, ELBOW_PLUS, ELBOW_MINUS);
 
+    // Encoder setup
+    setup_encoder_pio(ENCODER_PIO);
     
+    encoder_init(leg.swingEnc, ENCODER_PIO, 0, SWING_ENC_PIN, MAX_ENC_RATE);
+    encoder_init(leg.liftEnc, ENCODER_PIO, 1, LIFT_ENC_PIN, MAX_ENC_RATE);
+    encoder_init(leg.elbowEnc, ENCODER_PIO, 2, ELBOW_ENC_PIN, MAX_ENC_RATE);
+
+    // PID setup
+    init_PID(leg.swingPID, SWING_P, SWING_I, SWING_D, PID_PERIOD);
+    init_PID(leg.liftPID, LIFT_P, LIFT_I, LIFT_D, PID_PERIOD);
+    init_PID(leg.elbowPID, ELBOW_P, ELBOW_I, ELBOW_D, PID_PERIOD);
+
+ 
+
+
     printf("commands are stepper, shoulder, and elbow each with 1 arg. \n");
 
 

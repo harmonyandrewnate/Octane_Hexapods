@@ -12,7 +12,7 @@
 // 8 bit int, 4 bit frac(/16)
 // H-bridge good for 25kHz
 // PWM freq = sysclk / (divider * (wrap+1))
-#define PWM_DIV_INT_STEPPER 52
+#define PWM_DIV_INT_STEPPER 104 //52
 #define PWM_DIV_FRAC_STEPPER 10
 
 // PSM wrap number
@@ -90,10 +90,10 @@ void stepper_driver_set_vel(stepper *driver, int vel){
     } else {
         pio_sm_set_enabled(driver->pio, driver->sm, true);
         
-        int clkdiv = get_div_from_speed(speed);
+        int clkdiv = speed; //get_div_from_speed(speed);
 
         pio_sm_put(driver->pio, driver->sm, dir);
-        pio_sm_set_clkdiv_int_frac8(driver->pio, driver->sm, clkdiv >> 8, clkdiv & 0xFF);
+        pio_sm_set_clkdiv(driver->pio, driver->sm, (float)clkdiv);
     }
 }
 
