@@ -150,10 +150,13 @@ int main() {
     init_PID(leg.liftPID, LIFT_P, LIFT_I, LIFT_D, PID_PERIOD);
     init_PID(leg.elbowPID, ELBOW_P, ELBOW_I, ELBOW_D, PID_PERIOD);
 
+
+
+    
  
 
 
-    printf("commands are stepper, shoulder, and elbow each with 1 arg. \n");
+    printf("commands are power, stepper, shoulder, and elbow each with 1 arg. \n");
 
 
     int read_chars = 0;

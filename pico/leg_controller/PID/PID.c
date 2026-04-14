@@ -19,6 +19,10 @@ void init_PID(PID_cfg *cfg, float P, float I, float D, int period){
     cfg->accumulator = 0;
 }
 
+inline void set_PID_target(PID_cfg *cfg, int target){
+    cfg->target = target;
+}
+
 inline void set_PID_P(PID_cfg *cfg, float P){
     cfg->P = P;
 }
