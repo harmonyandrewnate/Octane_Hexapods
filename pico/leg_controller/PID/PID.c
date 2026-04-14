@@ -1,5 +1,5 @@
 typedef struct{
-    int target
+    int target;
     float P;
     float I;
     float D;

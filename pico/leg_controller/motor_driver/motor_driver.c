@@ -23,21 +23,17 @@ typedef struct {
 
 
 
-motor *init_motor(uint pinPlus, uint pinMinus){
+void init_motor(motor *driver, uint pinPlus, uint pinMinus){
     gpio_set_function(pinPlus, GPIO_FUNC_PWM);
     gpio_set_function(pinMinus, GPIO_FUNC_PWM);
 
-    motor *motorDriver = malloc(sizeof(motor));
-    
-    if (motorDriver == NULL) return NULL;
+    driver->slicePlus = pwm_gpio_to_slice_num(pinPlus);
+    driver->channelPlus = pwm_gpio_to_channel(pinPlus);
+    driver->sliceMinus = pwm_gpio_to_slice_num(pinMinus);
+    driver->channelMinus = pwm_gpio_to_channel(pinMinus);
 
-    motorDriver->slicePlus = pwm_gpio_to_slice_num(pinPlus);
-    motorDriver->channelPlus = pwm_gpio_to_channel(pinPlus);
-    motorDriver->sliceMinus = pwm_gpio_to_slice_num(pinMinus);
-    motorDriver->channelMinus = pwm_gpio_to_channel(pinMinus);
-
-    pwm_set_chan_level(motorDriver->slicePlus, motorDriver->channelPlus, 0);
-    pwm_set_chan_level(motorDriver->sliceMinus, motorDriver->channelMinus, 0);
+    pwm_set_chan_level(driver->slicePlus, driver->channelPlus, 0);
+    pwm_set_chan_level(driver->sliceMinus, driver->channelMinus, 0);
 
     pwm_config pwmCfg = pwm_get_default_config();
 
@@ -45,10 +41,8 @@ motor *init_motor(uint pinPlus, uint pinMinus){
 
     pwm_config_set_wrap(&pwmCfg, PWM_WRAP_MOTOR);
 
-    pwm_init (motorDriver->slicePlus, &pwmCfg, true);
-    pwm_init (motorDriver->sliceMinus, &pwmCfg, true);
-
-    return motorDriver;
+    pwm_init (driver->slicePlus, &pwmCfg, true);
+    pwm_init (driver->sliceMinus, &pwmCfg, true);
 }
 
 /*
