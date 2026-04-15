@@ -1,6 +1,7 @@
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
+#include "stdio.h"
 
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
@@ -62,13 +63,13 @@ void init_stepper_driver(stepper *driver, uint pinAPlus, uint pinPWM, uint power
 }
 
 //clkdiv from speed(dps)
-inline int get_div_from_speed(int speed){
-    long targStepFreq = (speed * 360) / STEPS_PER_REV;
-    int div = (int)((long)clock_get_hz(clk_sys) / (targStepFreq / INSTR_PER_STEP)) << 8;
-    if (div > 0xFFFFFF) {
-        return 0xFFFFFF;
-    } else if (div <= 0xFF) {
-        return 1 << 8;
+inline float get_div_from_speed(int speed){
+    float targStepFreq = (speed * 360) / STEPS_PER_REV;
+    float div = (clock_get_hz(clk_sys) / (targStepFreq / INSTR_PER_STEP));
+    if (div > 100000) {
+        return 0;
+    } else if (div <= 80000) {
+        return 80000;
     } else {
         return div;
     }
@@ -85,12 +86,12 @@ void stepper_driver_set_vel(stepper *driver, int vel){
         speed = vel;
     }
 
-    if (speed == 0) {
+    int clkdiv = get_div_from_speed(speed);
+    
+    if (clkdiv == 0) {
         pio_sm_set_enabled(driver->pio, driver->sm, false);
     } else {
-        pio_sm_set_enabled(driver->pio, driver->sm, true);
-        
-        int clkdiv = speed; //get_div_from_speed(speed);
+        pio_sm_set_enabled(driver->pio, driver->sm, true);    
 
         pio_sm_put(driver->pio, driver->sm, dir);
         pio_sm_set_clkdiv(driver->pio, driver->sm, (float)clkdiv);

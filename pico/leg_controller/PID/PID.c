@@ -1,11 +1,11 @@
 typedef struct{
-    int target;
+    float target;
     float P;
     float I;
     float D;
-    int last;
+    float last;
     int T_us;
-    int accumulator;
+    float accumulator;
 } PID_cfg;
 
 
@@ -19,7 +19,7 @@ void init_PID(PID_cfg *cfg, float P, float I, float D, int period){
     cfg->accumulator = 0;
 }
 
-inline void set_PID_target(PID_cfg *cfg, int target){
+inline void set_PID_target(PID_cfg *cfg, float target){
     cfg->target = target;
 }
 
@@ -35,18 +35,18 @@ inline void set_PID_D(PID_cfg *cfg, float D){
     cfg->D = D;
 }
 
-inline int update_PID(PID_cfg *cfg, int current){
-    int last = cfg->last;
+inline int update_PID(PID_cfg *cfg, float current){
+    float last = cfg->last;
     cfg->last = current;
     
-    int error = current - cfg->target;
-    int P_power = error * cfg->P;
+    float error = current - cfg->target;
+    float P_power = error * cfg->P;
     
     cfg->accumulator += error;
-    int I_power = cfg->accumulator * cfg->I;
+    float I_power = cfg->accumulator * cfg->I;
     
-    int vel = current - last;
-    int D_power = vel * cfg->D;
+    float vel = current - last;
+    float D_power = vel * cfg->D;
 
     return P_power + I_power + D_power;
 }

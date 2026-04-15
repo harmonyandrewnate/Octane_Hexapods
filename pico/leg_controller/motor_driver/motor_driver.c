@@ -51,11 +51,11 @@ void init_motor(motor *driver, uint pinPlus, uint pinMinus){
 void set_motor(motor *driver, int power){
     if (driver != NULL) {
         if (power > 0) {
-            pwm_set_chan_level(driver->slicePlus, driver->channelPlus, power);
+            pwm_set_chan_level(driver->slicePlus, driver->channelPlus, power);//(power * (3/4)) + 25);
             pwm_set_chan_level(driver->sliceMinus, driver->channelMinus, 0);
         } else if (power < 0) {
             pwm_set_chan_level(driver->slicePlus, driver->channelPlus, 0);
-            pwm_set_chan_level(driver->sliceMinus, driver->channelMinus, -power);
+            pwm_set_chan_level(driver->sliceMinus, driver->channelMinus, -power);//-((power * (3/4)) + 25));
         } else {
             pwm_set_chan_level(driver->slicePlus, driver->channelPlus, 0);
             pwm_set_chan_level(driver->sliceMinus, driver->channelMinus, 0);

@@ -7,6 +7,7 @@ int offsets[8] = {0};
 typedef struct {
     PIO pio;
     uint sm;
+    float scale;
 } encoder_t;
 
 static inline int get_pio_num(PIO pio) {
@@ -25,16 +26,19 @@ void setup_encoder_pio(PIO pio) {
 } 
 
 // Uses 2 consecutive pins
-void encoder_init(encoder_t *encoderStruct, PIO pio, uint sm, uint pin, int max_step_rate) {
+void encoder_init(encoder_t *encoderStruct, PIO pio, uint sm, uint pin, int max_step_rate, float scale) {
     quadrature_encoder_program_init(pio, sm, pin, max_step_rate);
+    encoderStruct->scale = scale;
+    encoderStruct->pio = pio;
+    encoderStruct->sm = sm;
 }
 
 void reset_encoder(encoder_t *encoderStruct) {
     offsets[(4*get_pio_num(encoderStruct->pio))+encoderStruct->sm] = quadrature_encoder_get_count(encoderStruct->pio, encoderStruct->sm);
 }
 
-int32_t get_encoder(encoder_t *encoderStruct) {
+float get_encoder(encoder_t *encoderStruct) {
     int offset = offsets[(4*get_pio_num(encoderStruct->pio))+encoderStruct->sm];
-    return (quadrature_encoder_get_count(encoderStruct->pio, encoderStruct->sm) - offset);
+    return ((float)(quadrature_encoder_get_count(encoderStruct->pio, encoderStruct->sm) - offset)) * encoderStruct->scale;
 }
 
