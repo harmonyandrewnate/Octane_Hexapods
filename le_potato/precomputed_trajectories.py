@@ -4,15 +4,17 @@ import math
 from actuator_kinematics import get_targets_full, get_targets_displacement
 from IK import IK
 
+lift = 30
+deltax = 0
+deltay = 100
 
-
-leg0workspace = np.linspace((800, 0, -150), (800, 0, -120), num=10)
-leg0workspace = np.append(leg0workspace, np.linspace((800, 0, -120), (800, 100, -120), num=20), axis=0)
-leg0workspace = np.append(leg0workspace, np.linspace((800, 100, -120), (800, 100, -150), num=10), axis=0)
-leg0workspace = np.append(leg0workspace, np.linspace((800, 100, -150), (800, -100, -150), num=40), axis=0)
-leg0workspace = np.append(leg0workspace, np.linspace((800, -100, -150), (800, -100, -120), num=10), axis=0)
-leg0workspace = np.append(leg0workspace, np.linspace((800, -100, -120), (800, 0, -120), num=20), axis=0)
-leg0workspace = np.append(leg0workspace, np.linspace((800, 0, -120), (800, 0, -150), num=10), axis=0)
+leg0workspace = np.linspace((800, 0, -150), (800, 0, -150 + lift), num=10)
+leg0workspace = np.append(leg0workspace, np.linspace((800, 0, -150 + lift), (800 + deltax, deltay, -150 + lift), num=20), axis=0)
+leg0workspace = np.append(leg0workspace, np.linspace((800 + deltax, deltay, -150 + lift), (800, deltay, -150), num=10), axis=0)
+leg0workspace = np.append(leg0workspace, np.linspace((800 + deltax, deltay, -150), (800 - deltax, -deltay, -150), num=40), axis=0)
+leg0workspace = np.append(leg0workspace, np.linspace((800 - deltax, -deltay, -150), (800 - deltax, -deltay, -150 + lift), num=10), axis=0)
+leg0workspace = np.append(leg0workspace, np.linspace((800 - deltax, -deltay, -150 + lift), (800, 0, -150 + lift), num=20), axis=0)
+leg0workspace = np.append(leg0workspace, np.linspace((800, 0, -150 + lift), (800, 0, -150), num=10), axis=0)
 
 
 

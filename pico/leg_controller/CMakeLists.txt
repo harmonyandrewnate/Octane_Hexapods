@@ -15,6 +15,7 @@ add_subdirectory(encoder)
 add_subdirectory(motor_driver)
 add_subdirectory(stepper_driver)
 add_subdirectory(PID)
+add_subdirectory(trajectories)
 
 
 add_executable(leg_controller
@@ -37,4 +38,5 @@ target_link_libraries(leg_controller
     motor_driver
     stepper_driver
     PID
+    trajectories
 )
