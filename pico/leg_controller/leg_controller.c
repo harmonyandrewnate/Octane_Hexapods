@@ -176,9 +176,12 @@ bool traj_timer_callback(__unused struct repeating_timer *t) {
     set_PID_target(leg.liftPID, forward_leg_4[curr_traj_step][1]);
     set_PID_target(leg.elbowPID, forward_leg_4[curr_traj_step][2]);
     
+    printf("targets: (%f, %f, %f) \n", forward_leg_4[curr_traj_step][0], forward_leg_4[curr_traj_step][1], forward_leg_4[curr_traj_step][2]);
+
     curr_traj_step ++;
 
-    if (curr_traj_step > 119) {        
+    if (curr_traj_step > 119) { 
+        printf("traj done \n");       
         return false;
     } else {
         // timer repeats
