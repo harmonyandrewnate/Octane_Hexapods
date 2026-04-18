@@ -8,9 +8,9 @@ from IK import IK
 def get_workspace_traj(height, lift, centerx, deltax, centery, deltay):
     legWorkspace = np.linspace((centerx, centery, -height), (centerx, centery, -height + lift), num=10)
     legWorkspace = np.append(legWorkspace, np.linspace((centerx, centery, -height + lift), (centerx + deltax, centery + deltay, -height + lift), num=20), axis=0)
-    legWorkspace = np.append(legWorkspace, np.linspace((centerx + deltax, centery + deltay, -height + lift), (centerx, centery + deltay, -height), num=10), axis=0)
-    legWorkspace = np.append(legWorkspace, np.linspace((centerx + deltax, centery + deltay, -height), (centerx - deltax, centery - deltay, -height), num=40), axis=0)
-    legWorkspace = np.append(legWorkspace, np.linspace((centerx - deltax, centery - deltay, -height), (centerx - deltax, centery - deltay, -height + lift), num=10), axis=0)
+    legWorkspace = np.append(legWorkspace, np.linspace((centerx + deltax, centery + deltay, -height + lift), (centerx, centery + deltay, -height - lift), num=10), axis=0)
+    legWorkspace = np.append(legWorkspace, np.linspace((centerx + deltax, centery + deltay, -height - lift), (centerx - deltax, centery - deltay, -height - lift), num=40), axis=0)
+    legWorkspace = np.append(legWorkspace, np.linspace((centerx - deltax, centery - deltay, -height - lift), (centerx - deltax, centery - deltay, -height + lift), num=10), axis=0)
     legWorkspace = np.append(legWorkspace, np.linspace((centerx - deltax, centery - deltay, -height + lift), (centerx, centery, -height + lift), num=20), axis=0)
     legWorkspace = np.append(legWorkspace, np.linspace((centerx, centery, -height + lift), (centerx, centery, -height), num=10), axis=0)
     
