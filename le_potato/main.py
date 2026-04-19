@@ -11,17 +11,17 @@ def main():
     while True:
         events = get_gamepad()
         for event in events:
-            if event.ev_type == button:
+            if event.ev_type == 'button':
                 if event.state == 0:
                     ser.write(b's')
                 else:
-                    if event.code == BTN_WEST:
+                    if event.code == 'BTN_WEST':
                         ser.write(b'f')
-                    elif event.code == BTN_SOUTH:
+                    elif event.code == 'BTN_SOUTH':
                         ser.write(b'b')
-                    elif event.code == BTN_NORTH:
+                    elif event.code == 'BTN_NORTH':
                         ser.write(b'l')
-                    elif event.code == BTN_EAST:
+                    elif event.code == 'BTN_EAST':
                         ser.write(b'r')
 
 
