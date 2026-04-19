@@ -1,6 +1,7 @@
 *.swp
 *.swo
 le_potato/venv
+le_potato/.venv
 le_potato/temp*
 le_potato/__pycache__
 pico/pico-examples

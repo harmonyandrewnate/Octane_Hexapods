@@ -33,21 +33,21 @@ def jointspace_to_actuatorspace(jointspace):
     return actuatorspace 
 
 
-leg0workspace = get_workspace_traj(200, 30, 800, 0, 0, 100)
+leg_workspace = get_workspace_traj(200, 30, 800, 0, 0, 100)
 
-leg0jointspace = workspace_to_jointspace(leg0workspace)
+leg_jointspace = workspace_to_jointspace(leg_workspace)
 
-leg0actuatorspace = jointspace_to_actuatorspace(leg0jointspace)
+leg_actuatorspace = jointspace_to_actuatorspace(leg_jointspace)
 
 
 
 np.set_printoptions(suppress=True)
 
 #print("\nworkspace points:")
-#print(np.array2string(leg0workspace, separator=', '))
+#print(np.array2string(leg_workspace, separator=', '))
 #print("\njoint angles(deg):")
-#print(np.array2string(np.rad2deg(leg0jointspace), separator=', '))
+#print(np.array2string(np.rad2deg(leg_jointspace), separator=', '))
 print("\nactuator targets:")
-print(np.array2string(leg0actuatorspace, separator=', '))
+print(np.array2string(leg_actuatorspace, separator=', '))
 
 

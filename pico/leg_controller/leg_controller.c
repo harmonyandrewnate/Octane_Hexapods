@@ -12,6 +12,12 @@
 #include "forward.c"
 
 
+// DEBUG ENABLE
+#define DEBUG_EN true
+
+// Main I2C input enable
+#define I2C_EN true
+
 #define BUFF_LEN 64
 
 // Stepper pins
@@ -47,6 +53,22 @@
 #define MOTOR_SCALE  0.01436781609
 // gets result in rad
 #define STEPPER_SCALE 0.00007853981
+
+/*
+ * Leg ID pins
+ */
+#define LEG_ID_0 20
+#define LEG_ID_1 21
+#define LEG_ID_2 22
+
+/*
+ * I2C configuration
+ */
+#define I2C_SDA_PIN 16
+#define I2C_SCL_PIN 17
+#define I2C_BAUDRATE 100000
+#define I2C_SLAVE_BASE_ADDRESS 0x10
+
 
 /* ----------- 
  *  PID VALUES
@@ -87,6 +109,8 @@ typedef struct{
     motor *elbow;
     encoder_t *elbowEnc;
     PID_cfg *elbowPID;
+
+    int legNumber;
 } legModule;
 
 
@@ -106,6 +130,11 @@ encoder_t elbowEncoder;
 PID_cfg swingPIDcfg;
 PID_cfg liftPIDcfg;
 PID_cfg elbowPIDcfg;
+
+// trajectorie values
+bool traj_running
+int curr_traj_step;
+float (*curr_traj)[3];
 
 // Timer structs
 struct repeating_timer PID_timer;
@@ -127,6 +156,10 @@ void mem_setup(){
     leg.elbowPID = &elbowPIDcfg;
 }
 
+void get_leg(legModule &leg) {
+    // ideally update to use id pins
+    leg->legNumber = 0;
+}
 
 void home_axis() {
     int last = get_encoder(leg.liftEnc);
@@ -168,20 +201,20 @@ bool PID_timer_callback(__unused struct repeating_timer *t) {
 }
 
 
-int curr_traj_step;
 // Trajectory target updater
 bool traj_timer_callback(__unused struct repeating_timer *t) {
     
-    set_PID_target(leg.swingPID, forward_leg_4[curr_traj_step][0]);
-    set_PID_target(leg.liftPID, forward_leg_4[curr_traj_step][1]);
-    set_PID_target(leg.elbowPID, forward_leg_4[curr_traj_step][2]);
+    set_PID_target(leg.swingPID, curr_traj[curr_traj_step][0]);
+    set_PID_target(leg.liftPID, curr_traj[curr_traj_step][1]);
+    set_PID_target(leg.elbowPID, curr_traj[curr_traj_step][2]);
     
-    printf("targets: (%f, %f, %f) \n", forward_leg_4[curr_traj_step][0], forward_leg_4[curr_traj_step][1], forward_leg_4[curr_traj_step][2]);
+    printf("targets: (%f, %f, %f) \n", curr_traj[curr_traj_step][0], curr_traj[curr_traj_step][1], curr_traj[curr_traj_step][2]);
 
     curr_traj_step ++;
 
     if (curr_traj_step > 119) { 
         printf("traj done \n");       
+        traj_running = false;
         return false;
     } else {
         // timer repeats
@@ -202,6 +235,8 @@ void handle_cmd(char *buff) {
         printf("homing \n");
     } else if (strcmp(cmd, "traj_enable") == 0 && matches == 1) {
         curr_traj_step = 0;
+        traj_running = true;
+        curr_traj = forward_trajectory[4];
         add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
         printf("traj on \n");
     } else if (strcmp(cmd, "PID_enable") == 0 && matches == 1){
@@ -230,6 +265,54 @@ void handle_cmd(char *buff) {
         printf("set %d \n", arg1);
     } 
 }
+
+void debug_handler(int read_chars, char *buff, char tmp_char) {
+    tmp_char = getchar();
+    if (read_chars < BUFF_LEN) {
+        buff[read_chars] = tmp_char;
+        read_chars++;
+        printf("%c", tmp_char);
+        if (tmp_char == '\r') printf("\n");
+        
+        if (tmp_char == '\n' || tmp_char == '\r') {
+            handle_cmd(buff);
+            for (int i = 0; i < read_chars; i++) {
+                buff[i] = 0;
+            }
+            read_chars = 0;
+        }
+    } else {
+        if (tmp_char == '\n' || tmp_char == '\r') {
+            printf("%c", tmp_char);
+            read_chars = 0;
+            tmp_char = '\0';
+        }
+    }
+}
+
+static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
+    
+}
+
+void I2C_input_handler(){
+    
+}
+
+void I2C_setup(){
+    gpio_init(I2C_SLAVE_SDA_PIN);
+    gpio_set_function(I2C_SLAVE_SDA_PIN, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SLAVE_SDA_PIN);
+
+    gpio_init(I2C_SLAVE_SCL_PIN);
+    gpio_set_function(I2C_SLAVE_SCL_PIN, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SLAVE_SCL_PIN);
+
+    i2c_init(i2c0, I2C_BAUDRATE);
+    // configure I2C0 for slave mode
+    i2c_slave_init(i2c0, I2C_SLAVE_BASE_ADDRESS + leg.legNumber, &i2c_slave_handler);    
+}
+
+
 
 int main() {
     stdio_init_all();
@@ -262,6 +345,7 @@ int main() {
     // add_repeating_timer_us(-PID_PERIOD, PID_timer_callback, NULL, &PID_timer);
     
     curr_traj_step = 0;
+    trajRunning = false;
     // Start Trajectory
     // add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
 
@@ -275,26 +359,7 @@ int main() {
     char tmp_char = 0;
 
     while (1) {
-        tmp_char = getchar();
-        if (read_chars < BUFF_LEN) {
-            buff[read_chars] = tmp_char;
-            read_chars++;
-            printf("%c", tmp_char);
-            if (tmp_char == '\r') printf("\n");
-            
-            if (tmp_char == '\n' || tmp_char == '\r') {
-                handle_cmd(buff);
-                for (int i = 0; i < read_chars; i++) {
-                    buff[i] = 0;
-                }
-                read_chars = 0;
-            }
-        } else {
-            if (tmp_char == '\n' || tmp_char == '\r') {
-                printf("%c", tmp_char);
-                read_chars = 0;
-                tmp_char = '\0';
-            }
-        }
+        if (DEBUG_EN) debug_handler(read_chars, buff, tmp_char);
+        if (I2C_EN) I2C_input_handler();
     }
 }
