@@ -1,4 +1,6 @@
 To build:
+ensure toolchain is installed: sudo apt install cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential
+ensure cmake is installed
 Create build/ directory
 Run cmake .. from build directory
 Run make
