@@ -1,5 +1,8 @@
 add_library(trajectories
     forward.c
+    backward.c
+    left.c
+    right.c
 )
 
 target_include_directories(trajectories PUBLIC

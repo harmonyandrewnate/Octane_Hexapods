@@ -1,4 +1,18 @@
-float forward_trajectory[6][120][3];
+float forward_leg_0[120][3];
+
+
+
+float forward_leg_1[120][3];
+
+
+
+float forward_leg_2[120][3];
+
+
+
+float forward_leg_3[120][3];
+
+
 
 float forward_leg_4[120][3] = 
     {{  0.        ,  97.94586824,  48.31810627},
@@ -122,5 +136,16 @@ float forward_leg_4[120][3] =
      {  0.        ,  95.81106852,  47.77635541},
      {  0.        ,  97.94586824,  48.31810627}};
 
-forward_trajectory[4] = forward_leg_4;
 
+
+float forward_leg_5[120][3];
+
+
+
+float (*forward_trajectory[6])[3] = {
+    forward_leg_0,
+    forward_leg_1,
+    forward_leg_2,
+    forward_leg_3,
+    forward_leg_4,
+    forward_leg_5};
