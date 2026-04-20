@@ -79,7 +79,9 @@ void serial_handler(int read_chars, char *buff, char tmp_char) {
 }
 
 
-void main(){
+int main() {
+    stdio_init_all();
+
     I2C_setup();    
 
     int read_chars = 0;
@@ -87,5 +89,5 @@ void main(){
     char tmp_char = 0;
 
 
-    serial_handler(read_chars, buff, tmp_char);
+    while (true) serial_handler(read_chars, buff, tmp_char);
 }
