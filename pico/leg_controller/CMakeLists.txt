@@ -34,6 +34,8 @@ pico_add_extra_outputs(leg_controller)
 target_link_libraries(leg_controller 
     pico_stdlib
     hardware_pio
+    hardware_i2c
+    pico_i2c_slave
     encoder
     motor_driver
     stepper_driver

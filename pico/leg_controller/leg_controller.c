@@ -3,6 +3,8 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "pico/binary_info.h"
+#include <hardware/i2c.h>
+#include <pico/i2c_slave.h>
 
 #include "stepper_driver.c"
 #include "motor_driver.c"
@@ -10,6 +12,9 @@
 #include "PID.c"
 
 #include "forward.c"
+#include "backward.c"
+#include "left.c"
+#include "right.c"
 
 
 // DEBUG ENABLE
@@ -18,6 +23,7 @@
 // Main I2C input enable
 #define I2C_EN true
 
+// Serial buffer
 #define BUFF_LEN 64
 
 // Stepper pins
@@ -132,13 +138,17 @@ PID_cfg liftPIDcfg;
 PID_cfg elbowPIDcfg;
 
 // trajectorie values
-bool traj_running
+bool traj_running;
 int curr_traj_step;
 float (*curr_traj)[3];
+char next_command;
 
 // Timer structs
 struct repeating_timer PID_timer;
 struct repeating_timer traj_timer;
+
+
+
 
 void mem_setup(){
     // Setup memory space
@@ -156,9 +166,9 @@ void mem_setup(){
     leg.elbowPID = &elbowPIDcfg;
 }
 
-void get_leg(legModule &leg) {
+void id_leg() {
     // ideally update to use id pins
-    leg->legNumber = 0;
+    leg.legNumber = 0;
 }
 
 void home_axis() {
@@ -236,7 +246,7 @@ void handle_cmd(char *buff) {
     } else if (strcmp(cmd, "traj_enable") == 0 && matches == 1) {
         curr_traj_step = 0;
         traj_running = true;
-        curr_traj = forward_trajectory[4];
+        curr_traj = forward_trajectory[leg.legNumber];
         add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
         printf("traj on \n");
     } else if (strcmp(cmd, "PID_enable") == 0 && matches == 1){
@@ -291,21 +301,84 @@ void debug_handler(int read_chars, char *buff, char tmp_char) {
 }
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
-    
+    switch (event) {
+    case (I2C_SLAVE_RECEIVE):
+        char val = i2c_read_byte_raw(i2c);
+        switch (val) {
+        case ('f'):
+            next_command = 'f';
+            printf("next command: f\n");
+            break;
+        case ('b'):
+            next_command = 'b';
+            printf("next command: b\n");
+            break;
+        case ('l'):
+            next_command = 'l';
+            printf("next command: l\n");
+            break;
+        case ('r'):
+            next_command = 'r';
+            printf("next command: r\n");
+            break;
+        case ('s'):
+            next_command = 's';
+            printf("next command: s\n");
+            break;
+        default:
+            next_command = 's';
+            printf("next command: s\n");
+            break;
+        }
+        break;
+    default:
+        break;
+    }
 }
 
 void I2C_input_handler(){
-    
+    if (!traj_running) {
+        if (next_command == 's') {
+            return; //cancel_repeating_timer(&traj_timer);
+        } else {
+            switch (next_command) {
+            case ('f'):
+                curr_traj_step = 0;
+                traj_running = true;
+                curr_traj = forward_trajectory[leg.legNumber];
+                add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+                break;
+            case ('b'):
+                curr_traj_step = 0;
+                traj_running = true;
+                curr_traj = backward_trajectory[leg.legNumber];
+                add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+                break;
+            case ('l'):
+                curr_traj_step = 0;
+                traj_running = true;
+                curr_traj = left_trajectory[leg.legNumber];
+                add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+                break;
+            case ('r'):
+                curr_traj_step = 0;
+                traj_running = true;
+                curr_traj = right_trajectory[leg.legNumber];
+                add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+                break;
+            }
+        }
+    }
 }
 
 void I2C_setup(){
-    gpio_init(I2C_SLAVE_SDA_PIN);
-    gpio_set_function(I2C_SLAVE_SDA_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SLAVE_SDA_PIN);
+    gpio_init(I2C_SDA_PIN);
+    gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA_PIN);
 
-    gpio_init(I2C_SLAVE_SCL_PIN);
-    gpio_set_function(I2C_SLAVE_SCL_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SLAVE_SCL_PIN);
+    gpio_init(I2C_SCL_PIN);
+    gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SCL_PIN);
 
     i2c_init(i2c0, I2C_BAUDRATE);
     // configure I2C0 for slave mode
@@ -339,13 +412,15 @@ int main() {
     init_PID(leg.liftPID, LIFT_P, LIFT_I, LIFT_D, PID_PERIOD);
     init_PID(leg.elbowPID, ELBOW_P, ELBOW_I, ELBOW_D, PID_PERIOD);
 
-
+    
+    id_leg();
+    
 
     // Start PID
     // add_repeating_timer_us(-PID_PERIOD, PID_timer_callback, NULL, &PID_timer);
     
     curr_traj_step = 0;
-    trajRunning = false;
+    traj_running = false;
     // Start Trajectory
     // add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
 
