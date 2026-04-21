@@ -6,7 +6,6 @@
 
 
 
-
 /*
  * I2C configuration
  */
@@ -43,23 +42,23 @@ void handle_cmd(char *buff) {
     matches = sscanf(buff, "%s", cmd);
     if (buff[0] == 'f'){
         msg = 'f';
-        i2c_write_blocking(i2c0, 0x00, &msg, 1, false);
+        i2c_write_blocking(i2c0, 0x10, &msg, 1, false);
         //printf("f sent\n");
     } else if (strcmp(cmd, "b") == 0 && matches == 1){
         msg = 'b';
-        i2c_write_blocking(i2c0, 0x00, &msg, 1, false);
+        i2c_write_blocking(i2c0, 0x10, &msg, 1, false);
         //printf("b sent\n");
     } else if (strcmp(cmd, "l") == 0 && matches == 1){
         msg = 'l';
-        i2c_write_blocking(i2c0, 0x00, &msg, 1, false);
+        i2c_write_blocking(i2c0, 0x10, &msg, 1, false);
         //printf("l sent\n");
     } else if (strcmp(cmd, "r") == 0 && matches == 1){
         msg = 'r';
-        i2c_write_blocking(i2c0, 0x00, &msg, 1, false);
+        i2c_write_blocking(i2c0, 0x10, &msg, 1, false);
         //printf("r sent\n");
     } else if (strcmp(cmd, "s") == 0 && matches == 1){
         msg = 's';
-        i2c_write_blocking(i2c0, 0x00, &msg, 1, false);
+        i2c_write_blocking(i2c0, 0x10, &msg, 1, false);
         //printf("s sent\n");
     }
     //printf("parsed %s\n", buff); 

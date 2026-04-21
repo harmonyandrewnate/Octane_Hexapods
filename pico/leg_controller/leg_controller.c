@@ -175,6 +175,7 @@ void id_leg() {
     leg.legNumber = 0;
 }
 
+// PID must be disabled when this is running
 void home_axis() {
     int last = get_encoder(leg.liftEnc);
     int current = last;
@@ -305,39 +306,39 @@ void debug_handler() {
 }
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
-    switch (event) {
-    case (I2C_SLAVE_RECEIVE):
-        char val = i2c_read_byte_raw(i2c);
-        switch (val) {
-        case ('f'):
-            next_command = 'f';
-            printf("next command: f\n");
-            break;
-        case ('b'):
-            next_command = 'b';
-            printf("next command: b\n");
-            break;
-        case ('l'):
-            next_command = 'l';
-            printf("next command: l\n");
-            break;
-        case ('r'):
-            next_command = 'r';
-            printf("next command: r\n");
-            break;
-        case ('s'):
-            next_command = 's';
-            printf("next command: s\n");
-            break;
-        default:
-            next_command = 's';
-            printf("next command: s\n");
-            break;
-        }
+    //switch (event) {
+    //case (I2C_SLAVE_RECEIVE):
+    char val = i2c_read_byte_raw(i2c);
+    switch (val) {
+    case ('f'):
+        next_command = 'f';
+        printf("next command: f\n");
+        break;
+    case ('b'):
+        next_command = 'b';
+        printf("next command: b\n");
+        break;
+    case ('l'):
+        next_command = 'l';
+        printf("next command: l\n");
+        break;
+    case ('r'):
+        next_command = 'r';
+        printf("next command: r\n");
+        break;
+    case ('s'):
+        next_command = 's';
+        printf("next command: s\n");
         break;
     default:
+        next_command = 's';
+        printf("next command: s\n");
         break;
     }
+    //    break;
+    //default:
+    //    break;
+    //}
 }
 
 void I2C_input_handler(){
@@ -384,6 +385,9 @@ void I2C_setup(){
     gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SCL_PIN);
 
+    i2c_hw_t *controll_i2c_hw = i2c_get_hw(i2c0);
+    *((int *)(controll_i2c_hw+0x30)) |= 1 << 11;
+
     i2c_init(i2c0, I2C_BAUDRATE);
     // configure I2C0 for slave mode
     i2c_slave_init(i2c0, I2C_SLAVE_BASE_ADDRESS + leg.legNumber, &i2c_slave_handler);    
@@ -423,7 +427,7 @@ int main() {
     I2C_setup();
 
     // Start PID
-    // add_repeating_timer_us(-PID_PERIOD, PID_timer_callback, NULL, &PID_timer);
+    add_repeating_timer_us(-PID_PERIOD, PID_timer_callback, NULL, &PID_timer);
     
     curr_traj_step = 0;
     traj_running = false;
