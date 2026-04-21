@@ -32,22 +32,26 @@ def jointspace_to_actuatorspace(jointspace):
    
     return actuatorspace 
 
+def main():
+    # height, lift, centerx, deltax, centery, deltay
+    # x is radial, y is tangental
+    # 100 or 70.7, 70.7
+    leg_workspace = get_workspace_traj(200, 30, 800, 0, 0, -100)
 
-leg_workspace = get_workspace_traj(200, 30, 800, 0, 0, 100)
+    leg_jointspace = workspace_to_jointspace(leg_workspace)
 
-leg_jointspace = workspace_to_jointspace(leg_workspace)
-
-leg_actuatorspace = jointspace_to_actuatorspace(leg_jointspace)
-
-
-
-np.set_printoptions(suppress=True)
-
-#print("\nworkspace points:")
-#print(np.array2string(leg_workspace, separator=', '))
-#print("\njoint angles(deg):")
-#print(np.array2string(np.rad2deg(leg_jointspace), separator=', '))
-print("\nactuator targets:")
-print(np.array2string(leg_actuatorspace, separator=', '))
+    leg_actuatorspace = jointspace_to_actuatorspace(leg_jointspace)
 
 
+
+    np.set_printoptions(suppress=True)
+
+    #print("\nworkspace points:")
+    #print(np.array2string(leg_workspace, separator=', '))
+    #print("\njoint angles(deg):")
+    #print(np.array2string(np.rad2deg(leg_jointspace), separator=', '))
+    print("\nactuator targets:")
+    print(np.array2string(leg_actuatorspace, separator=', '))
+
+if __name__ == "__main__":
+    main()
