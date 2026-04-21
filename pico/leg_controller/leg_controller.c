@@ -147,6 +147,10 @@ char next_command;
 struct repeating_timer PID_timer;
 struct repeating_timer traj_timer;
 
+// Serial parse mem
+int read_chars = 0;
+char buff[BUFF_LEN] = {0};
+char tmp_char = 0;
 
 
 
@@ -276,7 +280,7 @@ void handle_cmd(char *buff) {
     } 
 }
 
-void debug_handler(int read_chars, char *buff, char tmp_char) {
+void debug_handler() {
     tmp_char = getchar();
     if (read_chars < BUFF_LEN) {
         buff[read_chars] = tmp_char;
@@ -416,6 +420,8 @@ int main() {
     id_leg();
     
 
+    I2C_setup();
+
     // Start PID
     // add_repeating_timer_us(-PID_PERIOD, PID_timer_callback, NULL, &PID_timer);
     
@@ -429,12 +435,9 @@ int main() {
     printf("commands are power, stepper, shoulder, and elbow each with 1 arg. \n");
 
 
-    int read_chars = 0;
-    char buff[BUFF_LEN] = {0};
-    char tmp_char = 0;
 
     while (1) {
-        if (DEBUG_EN) debug_handler(read_chars, buff, tmp_char);
+        if (DEBUG_EN) debug_handler();
         if (I2C_EN) I2C_input_handler();
     }
 }
