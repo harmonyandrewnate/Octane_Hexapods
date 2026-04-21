@@ -72,7 +72,7 @@
  */
 #define I2C_SDA_PIN 16
 #define I2C_SCL_PIN 17
-#define I2C_BAUDRATE 100000
+#define I2C_BAUDRATE 10000
 #define I2C_SLAVE_BASE_ADDRESS 0x10
 
 
