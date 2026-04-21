@@ -35,8 +35,9 @@ def jointspace_to_actuatorspace(jointspace):
 def main():
     # height, lift, centerx, deltax, centery, deltay
     # x is radial, y is tangental
-    # 100 or 70.7, 70.7
-    leg_workspace = get_workspace_traj(200, 30, 800, 0, 0, -100)
+    # 50 or 35.4, 35.4
+    leg_workspace = get_workspace_traj(150, 30, 800, 0, 0, -50)
+
 
     leg_jointspace = workspace_to_jointspace(leg_workspace)
 
