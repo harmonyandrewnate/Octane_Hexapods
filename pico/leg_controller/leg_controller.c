@@ -385,8 +385,8 @@ void I2C_setup(){
     gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SCL_PIN);
 
-    i2c_hw_t *controll_i2c_hw = i2c_get_hw(i2c0);
-    *((int *)(controll_i2c_hw+0x30)) |= 1 << 11;
+    i2c_hw_t *control_i2c_hw = i2c_get_hw(i2c0);
+    *((int *)(control_i2c_hw+0x30)) &= ~(1 << 11);
 
     i2c_init(i2c0, I2C_BAUDRATE);
     // configure I2C0 for slave mode
