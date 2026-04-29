@@ -8,7 +8,7 @@ from IK import IK
 def get_workspace_traj(height, lift, centerx, deltax, centery, deltay):
     legWorkspace = np.linspace((centerx, centery, -height), (centerx, centery, -height + lift), num=10)
     legWorkspace = np.append(legWorkspace, np.linspace((centerx, centery, -height + lift), (centerx + deltax, centery + deltay, -height + lift), num=20), axis=0)
-    legWorkspace = np.append(legWorkspace, np.linspace((centerx + deltax, centery + deltay, -height + lift), (centerx, centery + deltay, -height - lift), num=10), axis=0)
+    legWorkspace = np.append(legWorkspace, np.linspace((centerx + deltax, centery + deltay, -height + lift), (centerx + deltax, centery + deltay, -height - lift), num=10), axis=0)
     legWorkspace = np.append(legWorkspace, np.linspace((centerx + deltax, centery + deltay, -height - lift), (centerx - deltax, centery - deltay, -height - lift), num=40), axis=0)
     legWorkspace = np.append(legWorkspace, np.linspace((centerx - deltax, centery - deltay, -height - lift), (centerx - deltax, centery - deltay, -height + lift), num=10), axis=0)
     legWorkspace = np.append(legWorkspace, np.linspace((centerx - deltax, centery - deltay, -height + lift), (centerx, centery, -height + lift), num=20), axis=0)
@@ -36,7 +36,7 @@ def main():
     # height, lift, centerx, deltax, centery, deltay
     # x is radial, y is tangental
     # 50 or 35.4, 35.4
-    leg_workspace = get_workspace_traj(150, 30, 800, 0, 0, -50)
+    leg_workspace = get_workspace_traj(150, -30, 800, 0, 0, 50)
 
 
     leg_jointspace = workspace_to_jointspace(leg_workspace)

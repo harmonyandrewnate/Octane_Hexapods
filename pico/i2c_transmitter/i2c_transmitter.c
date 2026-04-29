@@ -12,7 +12,7 @@
 #define I2C_SDA_PIN 16
 #define I2C_SCL_PIN 17
 #define I2C_BAUDRATE 10000
-#define I2C_SLAVE_BASE_ADDRESS 0x10
+#define I2C_SLAVE_BASE_ADDRESS 0x00
 
 // Serial buffer
 #define BUFF_LEN 64
@@ -62,6 +62,10 @@ void handle_cmd(char *buff) {
         msg = 's';
         i2c_write_blocking(i2c0, 0x0, &msg, 1, false);
         //printf("s sent\n");
+    } else if (strcmp(cmd, "h") == 0 && matches == 1){
+        msg = 'h';
+        i2c_write_blocking(i2c0, 0x0, &msg, 1, false);
+        //printf("h sent\n");
     }
     //printf("parsed %s\n", buff); 
 }

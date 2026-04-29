@@ -18,9 +18,10 @@
 
 
 // DEBUG ENABLE
-#define DEBUG_EN true
+#define DEBUG_EN false
 
 // Main I2C input enable
+// only works if DEBUG is off
 #define I2C_EN true
 
 // Serial buffer
@@ -99,7 +100,7 @@
 #define ELBOW_D 0.0
 
 // Trajectory update period in ms
-#define TRAJ_PERIOD 200
+#define TRAJ_PERIOD 50
 
 
 
@@ -202,6 +203,7 @@ void home_axis() {
 
     set_motor(leg.elbow, 0);
     reset_encoder(leg.elbowEnc);
+    reset_encoder(leg.swingEnc);
 }
 
 
@@ -248,16 +250,35 @@ void handle_cmd(char *buff) {
     if (strcmp(cmd, "home") == 0 && matches == 1){
         home_axis();
         printf("homing \n");
-    } else if (strcmp(cmd, "traj_enable") == 0 && matches == 1) {
+    } else if (strcmp(cmd, "traj_enable_f") == 0 && matches == 1) {
         curr_traj_step = 0;
         traj_running = true;
         curr_traj = forward_trajectory[leg.legNumber];
+        add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+        printf("traj on \n");
+    } else if (strcmp(cmd, "traj_enable_b") == 0 && matches == 1) {
+        curr_traj_step = 0;
+        traj_running = true;
+        curr_traj = backward_trajectory[leg.legNumber];
+        add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+        printf("traj on \n");
+    } else if (strcmp(cmd, "traj_enable_l") == 0 && matches == 1) {
+        curr_traj_step = 0;
+        traj_running = true;
+        curr_traj = left_trajectory[leg.legNumber];
+        add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+        printf("traj on \n");
+    } else if (strcmp(cmd, "traj_enable_r") == 0 && matches == 1) {
+        curr_traj_step = 0;
+        traj_running = true;
+        curr_traj = right_trajectory[leg.legNumber];
         add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
         printf("traj on \n");
     } else if (strcmp(cmd, "PID_enable") == 0 && matches == 1){
         add_repeating_timer_us(-PID_PERIOD, PID_timer_callback, NULL, &PID_timer);
         printf("PID on \n");
     } else if (strcmp(cmd, "PID_disable") == 0 && matches == 1){
+        stepper_driver_set_vel(leg.shoulderSwing, 0);
         cancel_repeating_timer(&PID_timer);
         printf("PID off \n");
     } else if (strcmp(cmd, "stepper") == 0 && matches == 2){
@@ -308,6 +329,7 @@ void debug_handler() {
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     //switch (event) {
     //case (I2C_SLAVE_RECEIVE):
+    printf("i2c\n");
     char val = i2c_read_byte_raw(i2c);
     switch (val) {
     case ('f'):
@@ -330,9 +352,11 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         next_command = 's';
         printf("next command: s\n");
         break;
+    case ('h'):
+        next_command = 'h';
+        printf("home requested\n");
+        break;
     default:
-        next_command = 's';
-        printf("next command: s\n");
         break;
     }
     //    break;
@@ -342,6 +366,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
 }
 
 void I2C_input_handler(){
+    printf("traj_running: %b\n", traj_running);
     if (!traj_running) {
         if (next_command == 's') {
             return; //cancel_repeating_timer(&traj_timer);
@@ -352,24 +377,34 @@ void I2C_input_handler(){
                 traj_running = true;
                 curr_traj = forward_trajectory[leg.legNumber];
                 add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+                next_command = 's';
                 break;
             case ('b'):
                 curr_traj_step = 0;
                 traj_running = true;
                 curr_traj = backward_trajectory[leg.legNumber];
                 add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+                next_command = 's';
                 break;
             case ('l'):
                 curr_traj_step = 0;
                 traj_running = true;
                 curr_traj = left_trajectory[leg.legNumber];
                 add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+                next_command = 's';
                 break;
             case ('r'):
                 curr_traj_step = 0;
                 traj_running = true;
                 curr_traj = right_trajectory[leg.legNumber];
                 add_repeating_timer_ms(-TRAJ_PERIOD, traj_timer_callback, NULL, &traj_timer);
+                next_command = 's';
+                break;
+            case ('h'):
+                cancel_repeating_timer(&PID_timer);
+                home_axis();
+                add_repeating_timer_us(-PID_PERIOD, PID_timer_callback, NULL, &PID_timer);
+                next_command = 's';
                 break;
             }
         }
@@ -441,7 +476,11 @@ int main() {
 
 
     while (1) {
-        if (DEBUG_EN) debug_handler();
-        if (I2C_EN) I2C_input_handler();
+        if (DEBUG_EN) {
+            debug_handler();
+        }
+        if (I2C_EN) {
+            I2C_input_handler();
+        }
     }
 }
